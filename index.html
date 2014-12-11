@@ -1,0 +1,240 @@
+<html>
+  <head>
+  <script language="javascript" type="text/javascript" src="lib/box2d-html5.js"></script>
+  <script language="javascript" type="text/javascript" src="lib/box2d-helper.js"></script>
+    <script language="javascript" type="text/javascript" src="https://cdn.jsdelivr.net/p5.js/0.3.8/p5.min.js"></script>
+    <script language="javascript" type="text/javascript" src="https://cdn.jsdelivr.net/p5.js/0.3.8/addons/p5.dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+
+    <script language="javascript" type="text/javascript" src="boundary.js"></script>
+    <script language="javascript" type="text/javascript" src="box.js"></script>
+  </head>
+
+  <style>
+    #header{
+      width: 100%;
+      height: 100px;
+      background-color: aqua;
+
+      /*font size*/
+      font-size: 24px;
+      color: #000;
+      text-align: center;
+    }
+
+    #containerBox{
+       height: 30px;
+       /*background-color:green;*/
+    }
+
+      #leftCol{
+        float: left;
+        width: 30%;
+        /*background-color: pink;*/
+      }
+
+      #middleCol{
+        float: left;
+        width: 70%;
+        /*background-color: aqua;*/
+      }
+
+
+      .searchBox {
+        height: 40px;
+        margin: 0 0 20 0;
+        /*background-color: red;*/
+      }
+
+      #canvasBox{
+        /*width: 500px;
+        height: 500px;*/
+/*        background-color: yellow;*/
+      }
+
+
+
+  </style>
+
+
+  <body>
+    <div id="header">
+      <br>
+      Shout-out
+    </div>
+
+
+    <div id="containerBox">
+
+        <!-- left column  -->
+        <div id="leftCol">
+        </div>
+
+        <!-- middle column -->
+        <div id="middleCol">
+            <div class = 'searchBox'>
+              <div class ='info'>Search for tweets:</div>
+              <input id='searchInput' value ='mandyWhite81'></input>
+              <button id ='searchButton' onclick="getTweets();">Search!</button>
+            </div>
+            </div>
+
+
+
+            <div id='imageContainer'></div>
+            <button id="theButton" style="display:none" onClick="sendImage()"> send enasdf asdf </button>
+        </div>
+
+    </div>
+
+  </body>
+
+  <!-- socket.io -->
+  <script src="https://cdn.socket.io/socket.io-1.1.0.js"></script>
+  <script>
+
+      var box = false;
+ 
+      var words = [];
+      // Random assortment of words
+      var tempWords = ['this','is','a','test'];
+
+
+      // A reference to our box2d world
+      var world;
+      var boundaries = [];
+      var boxes = [];
+
+
+      // socket stuff
+      var socket = io.connect('http://localhost:8080/');
+      
+      socket.on('connect', function() {
+        console.log("Connected");
+      });
+
+      socket.on('wordMatch', function (data) {
+        alert("got a matching word! " + data);
+        document.getElementById("theButton").style.display = "block";
+      });
+
+       socket.on('tweets', function (data) {
+        for ( var i = 0; i < data.length; i++){
+          // //console.log(data[i].text);
+          // var tweetString = data[i].text + "<br/><br/><br/>";
+          // $("#leftCol").append(tweetString);
+          //get words from tweets
+          words.push(data[i].text);
+        }
+        //console.log(words);
+        box = true;
+
+      });
+
+
+    socket.on("whatever_2", function (data) {
+        //console.log(data);
+        var htmlString = '<img src="' + data + '"/>';
+        $('#imageContainer').html(htmlString);
+        //alert("got a photo ");
+        document.getElementById("theButton").style.display = "block";
+
+      });
+   // socket stuff
+
+    function sendImage(){
+      console.log("should send now");
+      socket.emit("sendingImage", "");
+    }
+
+
+    //////////////////////////////////////////////
+    // p5
+
+    // Font size
+    var fs = 16;
+    var searchTweet;
+    
+    function setup(){
+      createCanvas(windowWidth,500);
+
+      // Initialize box2d physics and create the world
+      world = createWorld();
+
+
+      textSize(24);
+
+      // Add a bunch of fixed boundaries
+      boundaries.push(new Boundary(width/4,height-5,width/2-50,10));
+      boundaries.push(new Boundary(3*width/4,height-50,width/2-50,10));
+
+    }
+
+
+    function draw(){
+      background(255);
+      // if(words.length>0){
+      //   for(var i=0; i<words.length; i++){
+      //     text(words[i], 100, (10+20*i));
+      //     noStroke();
+      //     fill(0);
+      //   }
+      // } // if end 
+
+      if ( box ){
+        loadBox2D();
+      }
+    }
+
+    function loadBox2D(){
+      // We must always step through time!
+      var timeStep = 1.0/30;
+      // 2nd and 3rd arguments are velocity and position iterations
+      world.Step(timeStep,10,10);
+
+      // Boxes fall from the top every so often
+      if (random(1) < 0.2) {
+        var r = floor(random(words.length));
+        var b = new Box(width/2,30,words[r]);
+        boxes.push(b);
+      }
+
+      // Display all the boundaries
+      for (var i = 0; i < boundaries.length; i++) {
+        boundaries[i].display();
+      }
+
+      // Display all the boxes
+      for (var i = boxes.length-1; i >= 0; i--) {
+        boxes[i].display();
+        if (boxes[i].done()) {
+          boxes.splice(i,1);
+        }
+      }
+    }
+
+ </script>
+ <script>
+ // Twitter API Calls
+  // Execute an API call, this is our own API!
+  function getTweets() {
+    console.log('getTweets');
+    var query = $("#searchInput").val();
+    console.log(query);
+    $.ajax({
+        url : '/tweets?'+ query,
+        dataType : 'json',
+        type : 'GET',
+        success : function(response){
+          //console.log(response);
+        },
+        error : function(err){
+          console.log(err);
+        }
+    });
+  }
+  // Twitter API Calls
+
+  </script>
+
+</html>
