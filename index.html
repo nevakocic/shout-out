@@ -1,0 +1,148 @@
+<html>
+  <head>
+    <script language="javascript" type="text/javascript" src="https://cdn.jsdelivr.net/p5.js/0.3.8/p5.min.js"></script>
+    <script language="javascript" type="text/javascript" src="https://cdn.jsdelivr.net/p5.js/0.3.8/addons/p5.dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+  </head>
+
+  <style>
+    #header{
+      width: 100%;
+      height: 100px;
+      background-color: aqua;
+
+      /*font size*/
+      font-size: 24px;
+      color: #000;
+      text-align: center;
+    }
+
+    #containerBox{
+       height: 500px;
+       /*background-color:green;*/
+    }
+
+      #leftCol{
+        float: left;
+        width: 30%;
+        height: 500px;
+        /*background-color: pink;*/
+      }
+
+      #middleCol{
+        float: left;
+        width: 70%;
+        height: 500px;
+        /*background-color: aqua;*/
+      }
+
+
+
+    .apiquery {
+      margin: 0 0 20 0;
+    }
+  </style>
+
+
+  <body>
+    <div id="header">
+      <br>
+      Shout-out
+    </div>
+
+
+    <div id="containerBox">
+
+        <!-- left column  -->
+        <div id="leftCol">
+          something..
+        </div>
+
+        <!-- middle column -->
+        <div id="middleCol">
+            <div class = 'apiquery'>
+              <div class ='info'>Search for tweets:</div>
+              <input id='searchInput' value ='mandyWhite81'></input>
+              <button id ='searchButton' onclick="getTweets()">Search!</button>
+
+              <br>
+              <br>
+              <img src="http://nevenakocic.com/00.jpg">
+            </div>
+
+
+            <div id='imageContainer'></div>
+            <button id="theButton" style="display:none" onClick="sendImage()"> send enasdf asdf </button>
+        </div>
+
+        <!-- right column -->
+        <div id="rightCol"></div>
+    </div>
+
+  </body>
+
+  <!-- socket.io -->
+  <script src="https://cdn.socket.io/socket.io-1.1.0.js"></script>
+  <script>
+  // socket stuff
+      var socket = io.connect('http://localhost:8080/');
+      
+      socket.on('connect', function() {
+        console.log("Connected");
+      });
+
+      socket.on('wordMatch', function (data) {
+        alert("got a matching word! " + data);
+        document.getElementById("theButton").style.display = "block";
+
+      });
+
+       socket.on('tweets', function (data) {
+        for ( var i = 0; i < data.length; i++){
+          //console.log(data[i].text);
+          var tweetString = data[i].text + "<br/><br/><br/>";
+          $("#leftCol").append(tweetString);
+        }
+
+      });
+
+    socket.on("whatever_2", function (data) {
+        console.log(data);
+        var htmlString = '<img src="' + data + '"/>';
+        $('#imageContainer').html(htmlString);
+        alert("got a photo ");
+        document.getElementById("theButton").style.display = "block";
+
+      });
+ // socket stuff
+
+  function sendImage(){
+    console.log("should send now");
+    socket.emit("sendingImage", "");
+  }
+
+ </script>
+ <script>
+ // Twitter API Calls
+  // Execute an API call, this is our own API!
+  function getTweets() {
+    console.log('getTweets');
+    var query = $("#searchInput").val();
+    console.log(query);
+    $.ajax({
+        url : '/tweets?'+ query,
+        dataType : 'json',
+        type : 'GET',
+        success : function(response){
+          console.log(response);
+        },
+        error : function(err){
+          console.log(err);
+        }
+    });
+  }
+  // Twitter API Calls
+
+  </script>
+
+</html>
